@@ -642,12 +642,12 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        // Send to n8n webhook
+        // Send to n8n webhook - ACTUALIZADO 10/09/2025
         function sendToN8n(userMessage) {
             const messageId = 'msg-' + Date.now();
 
             // Send message to n8n
-                fetch('https://shadowcat.cloud/webhook-test/2636ab69-9b01-4d0a-9146-178947f0c5cf', {
+                fetch('https://shadowcat.cloud/webhook/2636ab69-9b01-4d0a-9146-178947f0c5cf', {
                 method: 'POST',
                 mode: 'cors', // Cambiar a cors para recibir respuesta
                 headers: {
