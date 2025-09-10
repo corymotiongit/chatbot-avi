@@ -642,14 +642,14 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        // Send to n8n webhook - ACTUALIZADO 10/09/2025 - FIX CORS
+        // Send to n8n webhook - RESPUESTA REAL DEL CHAT
         function sendToN8n(userMessage) {
             const messageId = 'msg-' + Date.now();
 
-            // Enviar a n8n con no-cors para evitar problemas de CORS
+            // Intentar CORS directo primero
             fetch('https://shadowcat.cloud/webhook/2636ab69-9b01-4d0a-9146-178947f0c5cf', {
                 method: 'POST',
-                mode: 'no-cors', // Usar no-cors para enviar sin problemas de CORS
+                mode: 'cors',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -660,15 +660,96 @@
                     timestamp: new Date().toISOString()
                 })
             })
-            .then(() => {
-                console.log('Mensaje enviado a n8n exitosamente (no-cors mode)');
-                // Como estamos en modo no-cors, no podemos leer la respuesta
-                // pero el mensaje se envía correctamente
-                addMessage('✅ Mensaje enviado a n8n. El webhook está funcionando correctamente.', 'ai');
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Respuesta directa de n8n:', data);
+                
+                // Mostrar la respuesta real de n8n
+                if (data.output) {
+                    addMessage(data.output, 'ai');
+                } else if (data.response) {
+                    addMessage(data.response, 'ai');
+                } else if (data.message) {
+                    addMessage(data.message, 'ai');
+                } else if (typeof data === 'string') {
+                    addMessage(data, 'ai');
+                } else {
+                    addMessage(JSON.stringify(data), 'ai');
+                }
             })
             .catch(error => {
-                console.error('Error enviando a n8n:', error);
-                addMessage('❌ Error al enviar mensaje a n8n. Verificando conexión...', 'ai');
+                console.error('CORS falló, usando proxy:', error);
+                
+                // Si CORS falla, usar proxy
+                fetch('/api/proxy-n8n', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: userMessage,
+                        userId: 'user-' + Date.now(),
+                        messageId: messageId,
+                        timestamp: new Date().toISOString()
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Respuesta via proxy:', data);
+                    
+                    if (data.output) {
+                        addMessage(data.output, 'ai');
+                    } else if (data.response) {
+                        addMessage(data.response, 'ai');
+                    } else if (data.message) {
+                        addMessage(data.message, 'ai');
+                    } else {
+                        addMessage(JSON.stringify(data), 'ai');
+                    }
+                })
+                .catch(proxyError => {
+                    console.error('Error en proxy:', proxyError);
+                    addMessage('Error: No se pudo conectar con el agente', 'ai');
+                });
+            });
+        }
+
+        // Función proxy para manejar CORS
+        function sendToN8nViaProxy(userMessage, messageId) {
+            fetch('/api/proxy-n8n', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: userMessage,
+                    userId: 'user-' + Date.now(),
+                    messageId: messageId,
+                    timestamp: new Date().toISOString()
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Response via proxy:', data);
+                
+                if (data.output) {
+                    addMessage(data.output, 'ai');
+                } else if (data.response) {
+                    addMessage(data.response, 'ai');
+                } else if (data.message) {
+                    addMessage(data.message, 'ai');
+                } else {
+                    addMessage('Error: No se pudo obtener respuesta de n8n', 'ai');
+                }
+            })
+            .catch(error => {
+                console.error('Error con proxy:', error);
+                addMessage('Error: No se pudo conectar con n8n', 'ai');
             });
         }
 
