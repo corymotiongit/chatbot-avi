@@ -1,0 +1,35 @@
+{
+  "name": "chatbot-avi-multicanal",
+  "version": "1.0.0",
+  "description": "Chatbot conversacional multicanal con n8n - Interfaz tipo Claude optimizada para móviles",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -a 0.0.0.0 -p 8000",
+    "dev": "npx http-server -a localhost -p 8000",
+    "build": "echo 'Static site - no build needed'",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [
+    "chatbot",
+    "ai",
+    "n8n",
+    "multicanal",
+    "whatsapp",
+    "telegram",
+    "mobile-first",
+    "claude-ui"
+  ],
+  "author": "AVI Team",
+  "license": "MIT",
+  "homepage": "https://github.com/usuario/chatbot-avi-multicanal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usuario/chatbot-avi-multicanal.git"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

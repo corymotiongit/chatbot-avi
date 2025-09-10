@@ -1,0 +1,185 @@
+{
+  "name": "Chat-AVI - AI Agent con Memoria",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat-avi",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type"
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "1",
+      "name": "AVI Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "chat-avi"
+    },
+    {
+      "parameters": {
+        "functionCode": "try {\n  // Procesar y estructurar datos del webhook\n  const webhookData = $json.body || $json;\n  \n  // Validar que llegó el mensaje\n  if (!webhookData.message) {\n    throw new Error('No se recibió mensaje del webhook');\n  }\n\n  // Extraer información del usuario\n  const userMessage = webhookData.message || 'Hola';\n  const userName = webhookData.user_name || 'Usuario';\n  const userId = webhookData.user_id || 'anonymous';\n  const context = webhookData.context || 'Conversación general';\n  const timestamp = webhookData.timestamp || new Date().toISOString();\n\n  // Preparar para AI Agent\n  const processedData = {\n    input: userMessage,\n    userId: userId,\n    userName: userName,\n    context: context,\n    timestamp: timestamp\n  };\n\n  console.log('✅ Datos procesados para AI Agent:', processedData);\n  return processedData;\n  \n} catch (error) {\n  console.error('❌ Error procesando webhook:', error.message);\n  return {\n    error: true,\n    input: 'Error procesando mensaje',\n    userId: 'anonymous',\n    userName: 'Usuario'\n  };\n}"
+      },
+      "id": "2",
+      "name": "Process Webhook Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "Eres AVI (Agente Virtual Inteligente), un asistente AI profesional y versátil del proyecto Chat-AVI.\n\n🤖 CAPACIDADES PRINCIPALES:\n• Análisis y procesamiento de información compleja\n• Generación de reportes y documentos profesionales\n• Asistencia en ventas y atención comercial\n• Soporte técnico y resolución de problemas\n• Creación de contenido y estrategias\n• Explicación de conceptos técnicos de forma simple\n• Toma de decisiones empresariales\n\n💬 PERSONALIDAD:\n• Amigable pero profesional\n• Proactivo en ofrecer soluciones\n• Específico y accionable in tus respuestas\n• Empático y comprensivo\n\n📋 INSTRUCCIONES:\n• Siempre saluda usando el nombre del usuario si está disponible\n• Ofrece respuestas completas y útiles\n• Incluye ejemplos prácticos cuando sea relevante\n• Haz preguntas de seguimiento si necesitas más información\n• Sugiere próximos pasos cuando sea apropiado\n• Mantén un equilibrio entre ser informativo y conciso\n• Recuerda conversaciones anteriores para dar continuidad\n\nPuedes ayudar con ventas, soporte técnico, análisis, reportes, estrategias, y cualquier consulta general. Adáptate al contexto de cada conversación y usa tu memoria para mantener coherencia.",
+        "hasOutputParser": false,
+        "options": {}
+      },
+      "id": "3",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 600
+        }
+      },
+      "id": "4",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [680, 400],
+      "credentials": {
+        "openAiApi": {
+          "id": "1",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "fromInput",
+        "sessionKey": "={{ $json.userId }}"
+      },
+      "id": "5",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1,
+      "position": [680, 500]
+    },
+    {
+      "parameters": {
+        "functionCode": "try {\n  // Procesar respuesta del AI Agent\n  const agentResponse = $json.output || $json.text || $json.response || '';\n  const userData = $input.first().json;\n  \n  if (!agentResponse || agentResponse.trim() === '') {\n    throw new Error('Respuesta vacía del AI Agent');\n  }\n\n  console.log('✅ Respuesta del AI Agent:', agentResponse);\n  console.log('📝 Datos de usuario:', userData);\n\n  const userMessage = userData.input ? userData.input.toLowerCase() : '';\n  const userName = userData.userName || 'Usuario';\n\n  // Estructura final para el chat\n  let chatResponse = {\n    message: agentResponse.trim(),\n    type: \"text\",\n    elements: []\n  };\n\n  // Agregar elementos dinámicos basados en palabras clave\n  if (userMessage.includes('reporte') || userMessage.includes('analisis') || userMessage.includes('informe') || userMessage.includes('documento')) {\n    chatResponse.elements.push({\n      type: \"card\",\n      data: {\n        title: \"📊 Análisis Generado por AVI\",\n        description: \"He creado un análisis detallado basado en tu consulta con insights accionables y recomendaciones específicas.\",\n        file: {\n          name: \"AVI_Analisis_\" + new Date().toISOString().split('T')[0] + \".pdf\",\n          size: \"2.1 MB\",\n          action: \"Descargar Reporte\"\n        }\n      }\n    });\n  } else if (userMessage.includes('producto') || userMessage.includes('catalogo') || userMessage.includes('precio') || userMessage.includes('venta')) {\n    chatResponse.elements.push({\n      type: \"card\",\n      data: {\n        title: \"🛍️ Información Comercial\",\n        description: \"Información actualizada sobre productos, precios y ofertas especiales disponibles.\",\n        file: {\n          name: \"Catalogo_Productos_2025.pdf\",\n          size: \"3.2 MB\",\n          action: \"Ver Catálogo\"\n        }\n      }\n    });\n  } else if (userMessage.includes('problema') || userMessage.includes('error') || userMessage.includes('ayuda') || userMessage.includes('soporte')) {\n    chatResponse.elements.push({\n      type: \"card\",\n      data: {\n        title: \"🔧 Diagnóstico de Soporte\",\n        description: \"He analizado tu consulta y preparado un diagnóstico con posibles soluciones y pasos a seguir.\",\n        file: {\n          name: \"Diagnostico_Soporte.pdf\",\n          size: \"1.5 MB\",\n          action: \"Ver Soluciones\"\n        }\n      }\n    });\n  } else if (userMessage.includes('estrategia') || userMessage.includes('plan') || userMessage.includes('propuesta') || userMessage.includes('idea')) {\n    chatResponse.elements.push({\n      type: \"card\",\n      data: {\n        title: \"💡 Estrategia Personalizada\",\n        description: \"Basándome en tu consulta y nuestras conversaciones anteriores, he desarrollado una estrategia con pasos concretos.\"\n      }\n    });\n  }\n  \n  console.log('✅ Respuesta final para el chat:', chatResponse);\n  return chatResponse;\n  \n} catch (error) {\n  console.error('❌ Error procesando respuesta del Agent:', error.message);\n  \n  return {\n    message: \"He procesado tu consulta, pero hubo un problema al formatear la respuesta. ¿Puedes reformular tu pregunta?\",\n    type: \"text\",\n    elements: []\n  };\n}"
+      },
+      "id": "6",
+      "name": "Format AVI Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "application/json"
+          }
+        }
+      },
+      "id": "7",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "AVI Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Webhook Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Webhook Data": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Format AVI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format AVI Response": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-31T00:00:00.000Z",
+  "versionId": "1"
+}

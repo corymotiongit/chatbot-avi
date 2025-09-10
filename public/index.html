@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Chat AVI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #e5e5e5;
+            height: 100vh;
+            height: 100dvh;
+            /* Dynamic viewport height for mobile */
+            overflow: hidden;
+            font-size: 12px;
+        }
+
+        .chat-container {
+            height: 100vh;
+            height: 100dvh;
+            /* Dynamic viewport height for mobile */
+            display: flex;
+            flex-direction: column;
+            max-width: 500px;
+            margin: 0 auto;
+            background: #2f2f2f;
+        }
+
+        .mobile-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #2f2f2f;
+        }
+
+        .mobile-nav {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            width: 24px;
+            height: 24px;
+            color: #e5e5e5;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mobile-title {
+            color: #e5e5e5;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 0 16px 20px 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #525252;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e5e5e5;
+            font-size: 9px;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: #404040;
+        }
+
+        /* AVI avatar styling with orange color */
+        .message:not(.user) .message-avatar {
+            background: #e67e22;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .message-content {
+            background: #404040;
+            color: #e5e5e5;
+            padding: 10px 14px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            max-width: 280px;
+            word-wrap: break-word;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .message.user .message-content {
+            background: #525252;
+            color: #e5e5e5;
+        }
+
+        .content-card {
+            background: transparent;
+            border: 1px solid #525252;
+            border-radius: 12px;
+            padding: 14px;
+            margin: 8px 0 0 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .content-card h4 {
+            color: #e5e5e5;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .content-card p {
+            color: #b8b8b8;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .file-preview {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #353535;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .file-icon {
+            width: 32px;
+            height: 32px;
+            background: #525252;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e5e5e5;
+            font-size: 10px;
+        }
+
+        .file-info h5 {
+            color: #e5e5e5;
+            font-size: 11px;
+            margin-bottom: 2px;
+            font-weight: 500;
+        }
+
+        .file-info span {
+            color: #9d9d9d;
+            font-size: 9px;
+        }
+
+        .action-btn {
+            background: #525252;
+            color: #e5e5e5;
+            border: 1px solid #6d6d6d;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 400;
+            cursor: pointer;
+            margin-left: auto;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: #6d6d6d;
+            border-color: #808080;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 0;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: #9d9d9d;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        .mobile-input {
+            padding: 16px;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+            background: #1a1a1a;
+            border-top: 1px solid #404040;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .input-label {
+            color: #9d9d9d;
+            font-size: 11px;
+            margin-bottom: 8px;
+            font-weight: 400;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            border: none;
+        }
+
+        .input-container>* {
+            border-right: none !important;
+        }
+
+        .input-container::before,
+        .input-container::after {
+            display: none;
+        }
+
+        .action-btn-square {
+            width: 32px;
+            height: 32px;
+            background: transparent;
+            border: 1px solid #404040;
+            border-radius: 8px;
+            color: #9d9d9d;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .action-btn-square:before,
+        .action-btn-square:after {
+            display: none;
+        }
+
+        .action-btn-square:hover {
+            background: #404040;
+            color: #e5e5e5;
+            border-color: #525252;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .input-wrapper:before,
+        .input-wrapper:after {
+            display: none;
+        }
+
+        .input-field {
+            width: 100%;
+            background: #2f2f2f;
+            border: 1px solid #404040;
+            color: #e5e5e5;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            /* Prevents zoom on iOS Safari */
+            font-family: inherit;
+            resize: none;
+            height: 32px;
+            box-shadow: none;
+            outline: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        .input-field::-webkit-scrollbar {
+            display: none;
+        }
+
+        .input-field::-webkit-inner-spin-button,
+        .input-field::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .input-field::placeholder {
+            color: #9d9d9d;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #525252;
+            box-shadow: none;
+        }
+
+        .send-btn {
+            width: 32px;
+            height: 32px;
+            background: #e67e22;
+            border: 1px solid #e67e22;
+            border-radius: 8px;
+            color: #ffffff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover {
+            background: #d35400;
+            border-color: #d35400;
+        }
+
+        .send-btn:disabled {
+            background: #525252;
+            border-color: #525252;
+            color: #9d9d9d;
+            cursor: not-allowed;
+        }
+
+        @keyframes typing {
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 768px) {
+            .chat-container {
+                max-width: 600px;
+            }
+
+            .message-content {
+                max-width: 350px;
+            }
+        }
+
+        /* Scrollbar styling */
+        .chat-messages::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #2f2f2f;
+            border-radius: 2px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #525252;
+            border-radius: 2px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #6d6d6d;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Mobile-specific improvements */
+        @supports (padding: max(0px)) {
+            .mobile-input {
+                padding-bottom: max(16px, env(safe-area-inset-bottom));
+            }
+        }
+
+        /* Prevent zoom on input focus */
+        .input-field {
+            font-size: 16px;
+            /* Prevents zoom on iOS */
+        }
+
+        /* Touch improvements */
+        .send-btn,
+        .action-btn-square {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        /* Better scrolling on mobile */
+        .chat-messages {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            transition: padding-bottom 0.3s ease;
+        }
+
+        /* Prevent content jumping when keyboard appears */
+        html {
+            overflow: hidden;
+        }
+
+        /* Ensure input stays visible when keyboard is open */
+        .mobile-input.keyboard-open {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 1000 !important;
+            max-width: none !important;
+        }
+
+        /* Better mobile keyboard handling */
+        @supports (height: 100dvh) {
+            .chat-container {
+                height: 100dvh;
+            }
+        }
+
+        /* Prevent input from being hidden behind keyboard */
+        .input-field:focus {
+            transform: translateZ(0);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chat-container">
+        <div class="mobile-header">
+            <div class="mobile-nav">
+                <div class="back-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <div class="mobile-title">Chat AVI</div>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <!-- Welcome message -->
+            <div class="message">
+                <div class="message-avatar">AVI</div>
+                <div class="message-content">
+                    ¡Hola! Soy AVI, tu asistente de inteligencia artificial. ¿En qué puedo ayudarte hoy?
+                </div>
+            </div>
+        </div>
+
+        <!-- Typing indicator (hidden by default) -->
+        <div class="typing-indicator hidden" id="typingIndicator">
+            <div class="message-avatar">AVI</div>
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+
+        <div class="mobile-input">
+            <div class="input-label">Responder a AVI...</div>
+            <div class="input-container">
+                <button class="action-btn-square" title="Nuevo chat">+</button>
+                <button class="action-btn-square" title="Opciones">≡</button>
+
+                <div class="input-wrapper">
+                    <textarea class="input-field" id="messageInput" placeholder="" rows="1"></textarea>
+                </div>
+
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function () {
+            // Enable/disable send button
+            sendBtn.disabled = this.value.trim() === '';
+        });
+
+        // Send message on Enter (but allow Shift+Enter for new lines)
+        messageInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addMessage(message, 'user');
+
+            // Clear input
+            messageInput.value = '';
+            sendBtn.disabled = true;
+
+            // Show typing indicator
+            showTyping();
+
+            // Simulate AI response (replace with n8n webhook call)
+            setTimeout(() => {
+                hideTyping();
+                sendToN8n(message);
+            }, 1500);
+        }
+
+        function addMessage(content, sender = 'ai', type = 'text', data = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = sender === 'user' ? 'TU' : 'AVI';
+
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+
+            if (type === 'text') {
+                messageContent.textContent = content;
+            } else if (type === 'card') {
+                messageContent.innerHTML = `
+                    <div class="content-card">
+                        ${createContentCard(data)}
+                    </div>
+                `;
+            }
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function createContentCard(data) {
+            return `
+                <h4>${data.title}</h4>
+                <p>${data.description}</p>
+                ${data.file ? `
+                    <div class="file-preview">
+                        <div class="file-icon">📄</div>
+                        <div class="file-info">
+                            <h5>${data.file.name}</h5>
+                            <span>${data.file.size}</span>
+                        </div>
+                        <button class="action-btn">${data.file.action}</button>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function showTyping() {
+            typingIndicator.classList.remove('hidden');
+            scrollToBottom();
+        }
+
+        function hideTyping() {
+            typingIndicator.classList.add('hidden');
+        }
+
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Send to n8n webhook
+        function sendToN8n(userMessage) {
+            const messageId = 'msg-' + Date.now();
+
+            // Send message to n8n
+                fetch('https://shadowcat.cloud/webhook-test/2636ab69-9b01-4d0a-9146-178947f0c5cf', {
+                method: 'POST',
+                mode: 'cors', // Cambiar a cors para recibir respuesta
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: userMessage,
+                    userId: 'user-' + Date.now(),
+                    messageId: messageId,
+                    timestamp: new Date().toISOString()
+                })
+            })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Response from n8n:', data);
+
+                    // Procesar respuesta real de n8n
+                    if (data.response) {
+                        addMessage(data.response, 'ai');
+                    } else if (data.message) {
+                        addMessage(data.message, 'ai');
+                    } else if (data.content) {
+                        addMessage(data.content, 'ai');
+                    } else if (typeof data === 'string') {
+                        addMessage(data, 'ai');
+                    } else {
+                        // Fallback si n8n devuelve algo diferente
+                        addMessage('Respuesta recibida desde n8n (modo producción)', 'ai');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error connecting to n8n:', error);
+
+                    // Si hay error CORS, usar fallback temporal
+                    if (error.message.includes('CORS') || error.message.includes('fetch')) {
+                        console.log('CORS error - usando respuesta simulada temporalmente');
+                        addMessage('Mensaje enviado a n8n. Configurar CORS para respuestas en tiempo real.', 'ai');
+                    } else {
+                        addMessage('Error al conectar con n8n. Verificando configuración...', 'ai');
+                    }
+                });
+        }
+
+        // Initialize
+        sendBtn.disabled = true;
+
+        // Handle virtual keyboard on mobile
+        function adjustForKeyboard() {
+            const chatContainer = document.querySelector('.chat-container');
+            const mobileInput = document.querySelector('.mobile-input');
+
+            // Use Visual Viewport API for better keyboard detection
+            if (window.visualViewport) {
+                function handleViewportChange() {
+                    const viewport = window.visualViewport;
+                    const keyboardHeight = window.innerHeight - viewport.height;
+
+                    if (keyboardHeight > 100) { // Keyboard is open
+                        // Position input above keyboard
+                        mobileInput.style.position = 'fixed';
+                        mobileInput.style.bottom = keyboardHeight + 'px';
+                        mobileInput.style.left = '0';
+                        mobileInput.style.right = '0';
+                        mobileInput.style.zIndex = '1000';
+                        mobileInput.style.maxWidth = 'none';
+
+                        // Adjust chat container
+                        chatContainer.style.height = viewport.height + 'px';
+
+                        // Add padding to chat messages
+                        const inputHeight = mobileInput.offsetHeight;
+                        chatMessages.style.paddingBottom = (inputHeight + 20) + 'px';
+
+                        // Scroll to bottom
+                        setTimeout(() => {
+                            scrollToBottom();
+                            messageInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }, 100);
+
+                    } else { // Keyboard is closed
+                        mobileInput.style.position = '';
+                        mobileInput.style.bottom = '';
+                        mobileInput.style.left = '';
+                        mobileInput.style.right = '';
+                        mobileInput.style.zIndex = '';
+                        mobileInput.style.maxWidth = '';
+
+                        chatContainer.style.height = '100dvh';
+                        chatMessages.style.paddingBottom = '0px';
+                    }
+                }
+
+                window.visualViewport.addEventListener('resize', handleViewportChange);
+                window.visualViewport.addEventListener('scroll', handleViewportChange);
+            } else {
+                // Fallback for browsers without Visual Viewport API
+                let initialHeight = window.innerHeight;
+
+                function handleResize() {
+                    const currentHeight = window.innerHeight;
+                    const heightDiff = initialHeight - currentHeight;
+
+                    if (heightDiff > 150) { // Keyboard likely open
+                        mobileInput.style.position = 'fixed';
+                        mobileInput.style.bottom = '0px';
+                        mobileInput.style.left = '0';
+                        mobileInput.style.right = '0';
+                        mobileInput.style.zIndex = '1000';
+                        mobileInput.style.maxWidth = 'none';
+
+                        chatContainer.style.height = currentHeight + 'px';
+                        const inputHeight = mobileInput.offsetHeight;
+                        chatMessages.style.paddingBottom = (inputHeight + 20) + 'px';
+
+                        setTimeout(scrollToBottom, 100);
+                    } else {
+                        mobileInput.style.position = '';
+                        mobileInput.style.bottom = '';
+                        mobileInput.style.left = '';
+                        mobileInput.style.right = '';
+                        mobileInput.style.zIndex = '';
+                        mobileInput.style.maxWidth = '';
+
+                        chatContainer.style.height = '100dvh';
+                        chatMessages.style.paddingBottom = '0px';
+                    }
+                }
+
+                window.addEventListener('resize', handleResize);
+            }
+
+            // Force scroll to input when focused
+            messageInput.addEventListener('focus', function () {
+                setTimeout(() => {
+                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+        }
+
+        // Initialize keyboard handling
+        adjustForKeyboard();
+    </script>
+</body>
+
+</html>
